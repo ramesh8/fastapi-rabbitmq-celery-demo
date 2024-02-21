@@ -1,0 +1,83 @@
+version: "3.8"
+
+services:
+  rabbitmq:
+    image: rabbitmq:3.12-management
+    container_name: rabbitmq
+    volumes:
+      - ./project/rabbitmq/data/:/var/lib/rabbitmq/
+    ports:
+      - 5672:5672
+      - 15672:15672
+
+  web:
+    build: ./project
+    ports:
+      - 8004:8000
+    command: uvicorn app:app --host 0.0.0.0 --reload
+    volumes:
+      - ./project:/usr/src/app
+    environment:
+      # - MQ_URL=redis://redis:6379/0
+      # - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672/
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - AMQP_URL=amqp://rabbit_mq?connection_attempts=10&retry_delay=10
+
+    depends_on:
+      - redis
+      - rabbitmq
+      - db
+      # - worker
+      # - rqworker
+
+  worker:
+    build: ./project
+    command: celery -A worker.celery worker --loglevel=info --logfile=logs/celery.log
+    volumes:
+      - ./project:/usr/src/app
+    environment:
+      # - MQ_URL=redis://redis:6379/0
+      # - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672/
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    depends_on:
+      - redis
+      - rabbitmq
+
+  redis:
+    image: redis:7
+    # hostname: redis
+    ports:
+      - "6379:6379"
+
+  # docker run -it --rm --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3.12-management
+
+  dashboard:
+    build: ./project
+    # command: celery --broker=redis://redis:6379/0 flower --port=5555
+    command: celery --broker=amqp://guest:guest@rabbitmq:5672/ flower --port=5555
+    ports:
+      - 5556:5555
+    environment:
+      # - MQ_URL=redis://redis:6379/0
+      # - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672/
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    depends_on:
+      - redis
+      - rabbitmq
+
+  db:
+    image: mongo:5.0.6
+    hostname: mongodbserver
+    environment:
+      - HOME=/data/db
+    # volumes:
+    # - /var/lib/mongodb:/data/db
+    # - E:\docker\volume_backups\mongodb:/data/db
+    ports:
+      - "27017:27017"
+volumes:
+  rabbit_mqdata:
+    driver: local
