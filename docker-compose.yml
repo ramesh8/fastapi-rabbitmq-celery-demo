@@ -9,6 +9,12 @@ services:
     ports:
       - 5672:5672
       - 15672:15672
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 30s
+      timeout: 30s
+      retries: 10
+      # start_period: 30s
 
   web:
     build: ./project
@@ -25,9 +31,11 @@ services:
       - AMQP_URL=amqp://rabbit_mq?connection_attempts=10&retry_delay=10
 
     depends_on:
-      - redis
-      - rabbitmq
-      - db
+      rabbitmq:
+        condition: service_healthy
+      # - redis
+      # - rabbitmq
+      # - db
       # - worker
       # - rqworker
 
@@ -44,6 +52,7 @@ services:
     depends_on:
       - redis
       - rabbitmq
+      - db
 
   redis:
     image: redis:7
@@ -73,11 +82,13 @@ services:
     hostname: mongodbserver
     environment:
       - HOME=/data/db
-    # volumes:
-    # - /var/lib/mongodb:/data/db
+      # volumes:
+      # - /var/lib/mongodb:/data/db
+      - ./project/rabbitmq/data/:/data/db
     # - E:\docker\volume_backups\mongodb:/data/db
     ports:
       - "27017:27017"
+
 volumes:
   rabbit_mqdata:
     driver: local
