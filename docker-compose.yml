@@ -19,7 +19,7 @@ services:
   web:
     build: ./project
     ports:
-      - 8004:8000
+      - 8000:8000
     command: uvicorn app:app --host 0.0.0.0 --reload
     volumes:
       - ./project:/usr/src/app
@@ -49,10 +49,15 @@ services:
       # - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672/
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      # - CELERY_RDB_HOST=0.0.0.0. # to be able to telnet from outside the container
+      # - PYTHONUNBUFFERED=1
+    # stdin_open: true
+    # tty: true
+    # ports:
+    # - 6900-7000:6900-7000
     depends_on:
-      - redis
-      - rabbitmq
-      - db
+      rabbitmq:
+        condition: service_healthy
 
   redis:
     image: redis:7
@@ -74,8 +79,8 @@ services:
       - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672/
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
     depends_on:
-      - redis
-      - rabbitmq
+      rabbitmq:
+        condition: service_healthy
 
   db:
     image: mongo:5.0.6

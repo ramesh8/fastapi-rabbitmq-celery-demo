@@ -1,0 +1,3 @@
+uvicorn app:app
+celery -A myjob.celery worker --loglevel=info --logfile=logs/celery.log
+rq worker task_queue --url redis://redis:6379/0

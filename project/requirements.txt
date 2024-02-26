@@ -15,4 +15,8 @@ httpx
 pika
 rabbitmq_worker
 aio_pika
-
+msal
+python-multipart
+sentry-sdk[fastapi]
+patool
+boto3
