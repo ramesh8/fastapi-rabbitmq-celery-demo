@@ -65,13 +65,25 @@
     <small>
       <ul class="list-group">
         <li class="list-group-item bg-secondary text-white">Todo:</li>
-        <li class="list-group-item">Show Subscription Status</li>
-        <li class="list-group-item">Accordian on Cards</li>
-        <li class="list-group-item">Toggle Finished</li>
-        <li class="list-group-item">Time taken for each stage ✔</li>
-        <li class="list-group-item">Date filter</li>
-        <li class="list-group-item">Search</li>
-        <li class="list-group-item">Ideal Time</li>
+        <li class="list-group-item">enqueue mails ✔</li>
+        <li class="list-group-item">celery tasks for files ✔</li>
+        <li class="list-group-item">
+          show mails with subject, attachmet filenames ✔
+        </li>
+        <li class="list-group-item">
+          show progress of each attachment stage-wise ✔
+        </li>
+        <li class="list-group-item">update mail status upon stage update ✔</li>
+        <li class="list-group-item">show Time taken for each stage ✔</li>
+
+        <li class="list-group-item">Toggle Auto Subscription (1hr)</li>
+        <li class="list-group-item">Show Subscription Status (1hr)</li>
+        <li class="list-group-item">Accordian on Cards (0.5hr)</li>
+        <li class="list-group-item">Toggle Hide Finished (0.5hr)</li>
+
+        <li class="list-group-item">Date Filter (0.5hr)</li>
+        <li class="list-group-item">Partial Text Search (1hr)</li>
+        <li class="list-group-item">Ideal Time (1hr)</li>
       </ul>
     </small>
   </div>
@@ -84,6 +96,9 @@
 <style>
   .badge {
     font-weight: 100;
+  }
+  .list-group-item {
+    text-transform: lowercase;
   }
 </style>
 {% endblock %}
