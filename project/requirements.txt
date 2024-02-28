@@ -20,3 +20,6 @@ python-multipart
 sentry-sdk[fastapi]
 patool
 boto3
+openxmllib-py3
+pdf2image
+openai==0.28.0

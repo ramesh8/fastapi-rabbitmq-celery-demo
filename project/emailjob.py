@@ -1,13 +1,4 @@
-from datetime import datetime
-
-"""
-# ^^^^^^^^^^^
-# i am getting too old for this $4!t
-# wasted 4 hours on this stupid mistake: from duck import duck 
-# cant find it because of stupid celery on docker never logged this exception for some strange reason
-# maybe its because i am using sentry, i dont know (yet!) 
-# note to self: print is better than logging during developement
-"""
+from datetime import datetime  #!careful
 import os
 import time
 import uuid
@@ -15,6 +6,7 @@ from bson import ObjectId
 from pymongo import MongoClient
 import logging
 from dotenv import load_dotenv
+from utils.constants import BillProcessStatus
 from utils.email_client_utils import EmailClientUtils
 from utils.s3_utils import S3Utils
 from subscriptions import Subscriptions
@@ -122,7 +114,7 @@ class EmailJob:
             "timestamp": datetime.now(),
             "client": client,
             "property": property,
-            "process_status": 0,
+            "process_status": BillProcessStatus.TO_BE_APPROVED,
             "upload_type": "email",
         }
         self.email_table_id = self.ec_utils.add_email(email_object)

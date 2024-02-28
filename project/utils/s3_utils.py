@@ -4,6 +4,7 @@ import boto3
 import mimetypes
 from dotenv import load_dotenv
 import mimetypes
+import openxmllib
 
 
 class S3Utils:
@@ -22,6 +23,7 @@ class S3Utils:
         logging.getLogger("urllib3").setLevel(logging.CRITICAL)
 
     def get_mime_type(self, file_extension):
+        print("looking for mimetype : ", file_extension)
         mime_type, _ = mimetypes.guess_type(f"file{file_extension}")
         print("mime_Type", mime_type)
         return mime_type
