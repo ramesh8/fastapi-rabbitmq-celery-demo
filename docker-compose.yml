@@ -87,10 +87,10 @@ services:
     hostname: mongodbserver
     environment:
       - HOME=/data/db
-      # volumes:
+    volumes:
       # - /var/lib/mongodb:/data/db
-      - ./project/rabbitmq/data/:/data/db
-    # - E:\docker\volume_backups\mongodb:/data/db
+      # - ./project/rabbitmq/data/:/data/db
+      - E:\docker\volume_backups\mongodb:/data/db
     ports:
       - "27017:27017"
 
