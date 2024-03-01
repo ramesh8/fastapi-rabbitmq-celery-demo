@@ -4,6 +4,7 @@ import io
 import os
 from dotenv import load_dotenv
 from msal import ConfidentialClientApplication
+from pymongo import MongoClient
 import requests
 
 
@@ -11,6 +12,11 @@ class Subscriptions:
     def __init__(self):
         # todo: review the constructor for idempotence
         load_dotenv()
+        # temporarily using mongodb, delete later
+        mongo = MongoClient("mongodb://mongodbserver:27017/")
+        self.db = mongo["asyncdemo"]
+        self.attscoll = self.db["mq_attachments"]
+        self.attcoll = self.db["mq_attachment"]
         self.mail = os.getenv("mail")
         self.mainpath = os.getenv("walk")
         self.billspath = os.getenv("billspath")
@@ -37,8 +43,8 @@ class Subscriptions:
 
     def get_headers(self, content_type: str = None):
         if not self.result:
-            result = self.app.acquire_token_for_client(scopes=self.scopes)
-        access_token = result["access_token"]
+            self.result = self.app.acquire_token_for_client(scopes=self.scopes)
+        access_token = self.result["access_token"]
         headers = {
             "Authorization": f"Bearer {access_token}",
             "Accept": content_type if content_type else "application/json",
@@ -131,7 +137,29 @@ class Subscriptions:
             return response.json()
         return None
 
+    #! not working
+    #! could not figure out what attid is...
+    def get_attachment(self, resid, attid):
+        """get single attachment by id"""
+        resurl = f"{self.microsoft_url}/users/{self.mail}/messages/{resid}/attachments/{attid}"
+        print(resurl)
+        response = requests.get(resurl, headers=self.get_headers())
+        print(response.json())
+        self.attcoll.insert_one(
+            {"resid": resid, "attid": attid, "res": response.json()}
+        )
+        if response.status_code == 200:
+            res = response.json()["value"]
+            att = {
+                "name": res["name"],
+                "size": res["size"],
+                "contentType": res["contentType"],
+                "content": res["content"],
+            }
+            return att
+
     def get_attachments(self, resid):  # responseId
+        """just fetch ids"""
         resurl = f"{self.microsoft_url}/users/{self.mail}/messages/{resid}/attachments"
         print(resurl)
         response = requests.get(resurl, headers=self.get_headers())
@@ -139,54 +167,23 @@ class Subscriptions:
         if response.status_code == 200:
             res = response.json()["value"]
             # self.save_attachments(res)
+            self.attscoll.insert_one({"resid": resid, "res": res})
             print("get_attachments")
             # anames = [a["name"] for _, a in enumerate(res)]
-            cbytes = [
-                {"name": a["name"], "content": a["contentBytes"]}
+            atts = [
+                {
+                    "name": a["name"],
+                    "size": a["size"],
+                    "contentType": a["contentType"],
+                    "id": a["id"],
+                    "content": a["contentBytes"],
+                }
                 for _, a in enumerate(res)
             ]
-            return {"status": 100, "attachments": cbytes}
+            return {"status": 100, "attachments": atts}
         else:
             return {
                 "status": 500,
                 "message": f"Error while getting attachments",
                 "response": response.json(),
             }
-
-    # def save_attachments(self, att_response):
-    #     try:
-    #         os.makedirs(self.target_folder, exist_ok=True)
-    #         for index, attachment in enumerate(att_response):
-    #             name = attachment["name"]
-    #             cbytes = attachment["contentBytes"]
-
-    #             source_fname, ext = os.path.splitext(name)
-    #             generated_fname = self.generate_name(index, name)
-
-    #             source_file_key = os.path.join(self.target_folder, generated_fname).replace("\\","/")
-    #             bytes = io.BytesIO(base64.b64decode(cbytes))
-    #             res = self.aws_boto3_service.upload_to_s3_object(source_file_key, bytes,ext)
-    #             if(self.ec_connector.get_attchment(source_file_key) !=None):
-    #                 continue
-    #             self.save_file_table_object(source_file_key)
-
-    #             if ext == ".rar" or ext == ".zip":
-    #                 os.makedirs("zip_files",exist_ok=True)
-    #                 source_file=os.path.join("zip_files", generated_fname)
-    #                 self.archive_files(source_file)
-    #                 os.remove(source_file)
-
-    #             # email client service in docker (50%)
-    #             # todo: update db
-
-    #             # conversion service in docker (50%)
-    #             # todo: initiate asyncio task -> conversion, update db
-    #             # todo: conversion -> upload to s3, update db
-
-    #             # s3 service in docker (50%)
-    #             # todo: upload to s3 -> extraction call (s3 key) -> save res to db
-
-    #             # extraction service in docker (80%)
-    #             # todo: extraction api
-    #     except Exception as ex:
-    #         print('exxxxxxx',ex)

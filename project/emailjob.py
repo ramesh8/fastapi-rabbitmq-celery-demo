@@ -2,7 +2,7 @@ from datetime import datetime  #!careful
 import os
 import time
 import uuid
-from bson import ObjectId
+from bson import Binary, ObjectId
 from pymongo import MongoClient
 import logging
 from dotenv import load_dotenv
@@ -37,6 +37,8 @@ class EmailJob:
         db = mongo["asyncdemo"]
         self.resources = db["mq_resources"]
         self.files = db["mq_files"]
+        self.filestages = db["mq_filestages"]
+        self.filecontents = db["mq_filecontents"]
         self.s3_utils = S3Utils()
         self.ec_utils = EmailClientUtils()
         self.subs = Subscriptions()
@@ -130,6 +132,7 @@ class EmailJob:
     def process_mail(self):
         from worker import process_file_task
 
+        start_time = time.time()
         # task 1
         # time.sleep(5)
         emailobj = self.save_email()
@@ -160,15 +163,51 @@ class EmailJob:
         #     fname, ext = os.path.splitext(att["name"])
         #     if ext==".rar" or ext==".zip":
         #         flist.extend(self.unzip_attachment())
-
+        stage = {
+            "name": "Init",
+            "description": "Init",
+            "time_min": 10,
+            "time_max": 30,
+            "order": 1,
+        }
         flist = attlist
         for findex, att in enumerate(flist):
             fileid = str(uuid.uuid4())
+            fileobj = {
+                "findex": findex,
+                "stage": stage,
+                "timestamp": datetime.utcnow(),
+                "resid": self.resid,
+                "fileid": fileid,
+                "attachment_id": att["id"],
+                "fname": att["name"],
+                # "size": att["size"],
+                # "contentType": att["contentType"],
+            }
+            res = self.files.insert_one(fileobj)
+            end_time = time.time()
+            filestage = {
+                "fileid": fileid,
+                "stage": stage,
+                "result": res.inserted_id,
+                "timestamp": datetime.utcnow(),
+                "time_taken": end_time - start_time,
+            }
+            self.filestages.insert_one(filestage)
+            res = self.filecontents.insert_one(
+                {
+                    "fileid": fileid,
+                    "fname": att["name"],
+                    "filecontent": att["content"],
+                }
+            )
+
             process_file_task.delay(
                 findex,
                 fileid,
                 att["name"],
-                att["content"],
+                str(res.inserted_id),
+                # att["id"],
                 self.resid,
                 str(self.email_table_id),
             )

@@ -1,5 +1,45 @@
 {% extends "_base.html" %} {% block content %}
 
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="#">NimbleIO</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <li class="nav-item">
+          <a class="nav-link active" aria-current="page" href="#">Home</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="#">Settings</a>
+        </li>
+        <!-- <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            Dropdown
+          </a>
+          <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+            <li><a class="dropdown-item" href="#">Action</a></li>
+            <li><a class="dropdown-item" href="#">Another action</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="#">Something else here</a></li>
+          </ul>
+        </li> -->
+        <!-- <li class="nav-item">
+          <a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true">Disabled</a>
+        </li> -->
+      </ul>
+      <form class="d-flex float-end">
+        <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search">
+        <button class="btn btn-outline-success" type="submit">Search</button>
+      </form>
+    </div>
+  </div>
+</nav>
+
+
+
+
 <div class="mt-3 row" data-masonry='{"percentPosition": true }'>
   {% for m in mails %}
 
@@ -58,47 +98,143 @@
   {% endfor %}
   <!-- </ul> -->
 </div>
-
 <div class="mt-3 row" data-masonry='{"percentPosition": true }'>
   <div class="col-sm-6 mb-4">
-    <!-- <h2>Mails</h2> -->
-    <small>
-      <ul class="list-group">
-        <li class="list-group-item bg-secondary text-white">Todo:</li>
-        <li class="list-group-item">enqueue mails ✔</li>
-        <li class="list-group-item">celery tasks for files ✔</li>
-        <li class="list-group-item">
-          show mails with subject, attachmet filenames ✔
-        </li>
-        <li class="list-group-item">
-          show progress of each attachment stage-wise ✔
-        </li>
-        <li class="list-group-item">update mail status upon stage update ✔</li>
-        <li class="list-group-item">show Time taken for each stage ✔</li>
+    <div class="card">
+      <div
+        class="card-header bg-primary text-white d-flex justify-content-between align-items-center"
+      >
+        <span><i class="fa-solid fa-gears"></i> Controls </span>
+        <span class="h5"><i class="fa-solid fa-eye"></i></span>
+      </div>
+      <div class="list-group list-group-flush">
+        <a
+          href="#" onclick="sea"
+          class="list-group-item list-group-item-action flex-column align-items-start"
+        >
+          <div class="d-flex w-100 justify-content-between">
+            <h5 class="mb-1">Search</h5>
+            <span class="h4 text-muted"><i class="fa-solid fa-toggle-off"></i></span>
+          </div>
+          <p class="mb-1">
+            Search mails by sender, subject, attachment names.
+          </p>
+          <!-- <small>...</small> -->
+        </a>
+        <a
+          href="#"
+          class="list-group-item list-group-item-action flex-column align-items-start"
+        >
+          <div class="d-flex w-100 justify-content-between">
+            <h5 class="mb-1">Date Filter</h5>
+            <span class="h4 text-muted"><i class="fa-solid fa-toggle-off"></i></span>
+          </div>
+          <p class="mb-1">
+            Filter mails by recieved date.
+          </p>
+          <!-- <small>...</small> -->
+        </a>
+        <a
+          href="#"
+          class="list-group-item list-group-item-action flex-column align-items-start"
+        >
+          <div class="d-flex w-100 justify-content-between">
+            <h5 class="mb-1">Auto Subscription</h5>
+            <span class="h4 text-muted"><i class="fa-solid fa-toggle-off"></i></span>
+          </div>
+          <p class="mb-1">
+            Automatically Subscribe to Microsoft Graph API (Outlook) on Start up.
+          </p>
+          <!-- <small>...</small> -->
+        </a>
 
-        <li class="list-group-item">Toggle Auto Subscription (1hr)</li>
-        <li class="list-group-item">Show Subscription Status (1hr)</li>
-        <li class="list-group-item">Accordian on Cards (0.5hr)</li>
-        <li class="list-group-item">Toggle Hide Finished (0.5hr)</li>
+        <a
+          href="#"
+          class="list-group-item list-group-item-action flex-column align-items-start"
+        >
+          <div class="d-flex w-100 justify-content-between">
+            <h5 class="mb-1">Hide Processed</h5>
+            <span class="h4 text-muted"><i class="fa-solid fa-toggle-off"></i></span>
+          </div>
+          <p class="mb-1">
+            Hide Processed Mails, Show only currently Processing and UnProcessed Mails. 
+          </p>
+          <!-- <small>...</small> -->
+        </a>
 
-        <li class="list-group-item">Date Filter (0.5hr)</li>
-        <li class="list-group-item">Partial Text Search (1hr)</li>
-        <li class="list-group-item">Idle Time (1hr)</li>
-      </ul>
-    </small>
+        <a
+          href="#"
+          class="list-group-item list-group-item-action flex-column align-items-start"
+        >
+          <div class="d-flex w-100 justify-content-between">
+            <h5 class="mb-1">Ideal Time</h5>
+            <small>30 mins</small>
+          </div>
+          <p class="mb-1">
+            Last mail processed at 30 mins ago.
+          </p>
+          <!-- <small>...</small> -->
+        </a>
+        <a
+          href="#"
+          class="list-group-item list-group-item-action flex-column align-items-start"
+        >
+          <div class="d-flex w-100 justify-content-between">
+            <h5 class="mb-1">Max File Size Limit</h5>
+            <span class="h4 text-muted"><i class="fa-solid fa-toggle-off"></i></span>
+          </div>
+          <p class="mb-1">
+            Restrict processing files which exceed the max file size limit.
+          </p>
+          <!-- <small>...</small> -->
+        </a>
+      </div>
+    </div>
   </div>
 </div>
-<script>
-  setTimeout(function () {
-    window.location.reload(1);
-  }, 5000);
-</script>
-<style>
-  .badge {
-    font-weight: 100;
-  }
-  .list-group-item {
-    text-transform: lowercase;
-  }
-</style>
-{% endblock %}
+<div class="mt-3 row d-none" data-masonry='{"percentPosition": true }'>
+    <div class="col-sm-6 mb-4">
+      <!-- <h2>Mails</h2> -->
+      <small>
+        <ul class="list-group">
+          <li class="list-group-item bg-secondary text-white">Todo:</li>
+          <li class="list-group-item">enqueue mails ✔</li>
+          <li class="list-group-item">celery tasks for files ✔</li>
+          <li class="list-group-item">
+            show mails with subject, attachmet filenames ✔
+          </li>
+          <li class="list-group-item">
+            show progress of each attachment stage-wise ✔
+          </li>
+          <li class="list-group-item">
+            update mail status upon stage update ✔
+          </li>
+          <li class="list-group-item">show Time taken for each stage ✔</li>
+
+          <li class="list-group-item">Toggle Auto Subscription (1hr)</li>
+          <li class="list-group-item">Show Subscription Status (1hr)</li>
+          <li class="list-group-item">Accordian on Cards (0.5hr)</li>
+          <li class="list-group-item">Toggle Hide Finished (0.5hr)</li>
+
+          <li class="list-group-item">Date Filter (0.5hr)</li>
+          <li class="list-group-item">Partial Text Search (1hr)</li>
+          <li class="list-group-item">Idle Time (1hr)</li>
+        </ul>
+      </small>
+    </div>
+  </div>
+  <script>
+    setTimeout(function () {
+      window.location.reload(1);
+    }, 5000);
+  </script>
+  <style>
+    .badge {
+      font-weight: 100;
+    }
+    .list-group-item {
+      /* text-transform: lowercase; */
+    }
+  </style>
+  {% endblock %}
+</div>

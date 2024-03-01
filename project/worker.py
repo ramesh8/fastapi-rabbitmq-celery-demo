@@ -74,7 +74,9 @@ def process_mail_task(resid, sender, subject, hasAtt):
 
 @celery.task(name="file_job_task", base=CallbackTask)
 # findex, fileid, fname, self.resid
-def process_file_task(findex, fileid, fname, fcontent, resid=None, email_table_id=None):
-    filejob = FileJob(findex, fileid, fname, fcontent, resid, email_table_id)
+def process_file_task(
+    findex, fileid, fname, fcontentid, resid=None, email_table_id=None
+):
+    filejob = FileJob(findex, fileid, fname, fcontentid, resid, email_table_id)
     print(f"created task: file_job with {fileid} :: {resid}")
     filejob.run_stages()

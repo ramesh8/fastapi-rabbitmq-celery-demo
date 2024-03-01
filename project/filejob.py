@@ -23,8 +23,8 @@ from extractor.extract import extract_from_openai
 
 
 class FileJob:
-    # findex, fileid, fname, self.resid
-    def __init__(self, findex, fileid, fname, fcontent, resid, email_table_id):
+    # findex, fileid, fname, self.resid, #fcontent is too large... put it in temp db
+    def __init__(self, findex, fileid, fname, fcontentid, resid, email_table_id):
         # init_logging()
         load_dotenv()
         self.mainpath = os.getenv("walk")
@@ -34,7 +34,6 @@ class FileJob:
         self.findex = findex
         self.fileid = fileid
         self.fname = fname
-        self.fcontent = fcontent
         self.resid = resid
         self.email_table_id = email_table_id
         self.client = self.property = self.s3key = self.file_table_id = None
@@ -43,22 +42,23 @@ class FileJob:
         self.db = mongo["asyncdemo"]
         self.resources = self.db["mq_resources"]
         self.files = self.db["mq_files"]
+        self.filecontents = self.db["mq_filecontents"]
         self.filestages = self.db["mq_filestages"]
         self.openai_ents = self.db["openai_ents"]
+
         self.emailobj = self.get_resource()
         self.s3_utils = S3Utils()
         self.ec_utils = EmailClientUtils()
         self.subs = Subscriptions()
         self.ext_utils = ExtractionUtils()
         self.ocr_utils = OCRUtils()
+
+        # self.attid = attid
+        # self.attachment = self.subs.get_attachment(self.resid, self.attid)
+        # self.fcontent = self.attachment["content"]
+        self.fcontentid = fcontentid
+        self.fcontent = self.get_fcontent(fcontentid)
         self.stages = [
-            # {
-            #     "name": "SE",
-            #     "description": "Save Email",
-            #     "time_min": 1,
-            #     "time_max": 5,
-            #     "order": 1,
-            # },
             {
                 "name": "SA",
                 "description": "Save Attachment",
@@ -112,6 +112,13 @@ class FileJob:
             "meta": None,
             "s3_key": "",
         }
+
+    def get_fcontent(self, fcid):
+        if self.fileid != None:
+            fc = self.filecontents.find_one({"_id": ObjectId(fcid)}, {"filecontent": 1})
+            if fc != None:
+                return fc["filecontent"]
+        return None
 
     def get_resource(self):
         if self.resid == None:
@@ -168,6 +175,9 @@ class FileJob:
             .replace(" ", "_")
         )
         # print(self.s3key)
+        if self.fcontent == None:
+            print("fcontent is None")
+            return False
         bytes = io.BytesIO(base64.b64decode(self.fcontent))
         # todo: check if s3 upload is success or not
         print(f"upload_to_s3_object :: s3key= {self.s3key} ext= {ext}")
@@ -176,19 +186,20 @@ class FileJob:
         print(f"upload to s3 :: res= {res}")
         if self.ec_utils.get_attchment(self.s3key) == None:
             self.file_table_id = self.save_file_table_object(self.s3key)
+        return True
 
     def sa_func(self, stage):
         start_time = time.time()
         print("saving att to s3")
         self.s3key = None
-        self.save_attachment_to_s3()
+        res = self.save_attachment_to_s3()
 
         timestamp = datetime.datetime.utcnow()
         end_time = time.time()
         filestage = {
             "fileid": self.fileid,
             "stage": stage,
-            "result": self.s3key,
+            "result": None if res == False else self.s3key,
             "timestamp": timestamp,
             "time_taken": end_time - start_time,
         }
@@ -238,82 +249,6 @@ class FileJob:
         self.filestages.insert_one(filestage)
         return result
 
-    # def extract_attachment_old(self):
-    #     #! set default model on extraction api...
-    #     params = {"s3_key": self.s3key, "model": "s25kT3", "meta": False}
-    #     result = {"url": self.extraction_url, "params": params}
-    #     response = None
-    #     self.bill_status = BillProcessStatus.TO_BE_APPROVED
-    #     try:
-    #         response = requests.post(self.extraction_url, json=params)
-    #         print("extraction response", response)
-    #         if response != None:
-    #             # extracted =
-    #             result["response"] = json.loads(response.text)
-    #             self.ext_res = result["response"]
-    #         else:
-    #             result["response"] = None
-    #     except Exception as ex:
-    #         print(ex)
-    #         result["exception"] = str(ex)
-    #         self.ext_res = self.temp_ents  # its not neccessary, i think...
-    #         if response != None:
-    #             result["response"] = response.text
-    #         self.bill_status = BillProcessStatus.EXTRACTION_FAILED
-
-    #     #! Adjusting ents and meta
-    #     self.meta = {}
-    #     if "meta" in self.ext_res and self.ext_res["meta"] != None:
-    #         if (
-    #             "client" in self.ext_res["meta"]
-    #             and self.ext_res["meta"]["client"] != None
-    #         ):
-    #             self.meta["client"] = self.ext_res["meta"]["client"]
-    #         else:
-    #             cl = self.ext_utils.fetch_client(self.client)
-    #             self.meta["client"] = (
-    #                 cl
-    #                 if cl != None
-    #                 else {"userID": "", "url": "", "token": "", "name": self.client}
-    #             )
-    #         if (
-    #             "property" in self.ext_res["meta"]
-    #             and self.ext_res["meta"]["property"] != None
-    #         ):
-    #             self.meta["property_details"] = self.ext_res["meta"]["property"]
-    #         else:
-    #             # corp = self.fetchPropertyDetails({'uuid':cl['userID'],"name":None}) if cl else self.fetchPropertyDetails({"uuid":None,'name':property})
-    #             corp = self.ext_utils.fetch_property({"name": self.property})
-    #             self.meta["property_details"] = (
-    #                 corp
-    #                 if corp
-    #                 else {"corporationID": "", "corporationName": self.property}
-    #             )
-    #         if (
-    #             "vendor" in self.ext_res["meta"]
-    #             and self.ext_res["meta"]["vendor"] != None
-    #         ):
-    #             self.meta["vendor_details"] = self.ext_res["meta"]["vendor"]
-    #         else:
-    #             self.meta["vendor_details"] = {"id": "", "name": ""}
-    #     else:
-    #         cl = self.ext_utils.fetch_client(self.client)
-    #         self.meta["client"] = (
-    #             cl
-    #             if cl != None
-    #             else {"userID": "", "url": "", "token": "", "name": self.client}
-    #         )
-    #         # corp = self.fetchPropertyDetails(cl['userID'],None) if cl else self.fetchPropertyDetails(None,property)
-    #         corp = self.ext_utils.fetch_property(self.property)
-    #         self.meta["property_details"] = (
-    #             corp
-    #             if corp
-    #             else {"corporationID": "", "corporationName": self.property}
-    #         )
-    #         self.meta["vendor_details"] = {"id": "", "name": ""}
-
-    #     return result
-
     def extract_attachment(self):
         try:
             ocr_text = self.ocr_utils.get_ocr_text(self.s3key)
@@ -323,7 +258,7 @@ class FileJob:
             self.bill_status = BillProcessStatus.TO_BE_APPROVED
             return res.inserted_id
         except Exception as ex:
-            print(ex)
+            print(f"Exception at extract_attachment ex={ex} s3key={self.s3key}")
             self.bill_status = BillProcessStatus.EXTRACTION_FAILED
             return str(ex)
 
@@ -355,34 +290,52 @@ class FileJob:
         # vendor_details = self.meta["vendor_details"]
         # client_details = self.meta["client"]
         fromAddress = self.ext_utils.getfromAddress(self.email_table_id)
+        if "invoices" in self.ext_res:
+            # multiple invoices
+            for invoice in self.ext_res["invoices"]:
 
-        bill_object = {
-            "file_table_id": self.file_table_id,
-            "email_table_id": self.email_table_id,
-            "from_Address": fromAddress,
-            "bill_status": self.bill_status,
-            "s3_key": self.s3key,
-            "unique_id": 0,
-            "client": self.client,
-            "property": self.property,
-            # "corporation_name": property_details["corporationName"],
-            "timestamp": datetime.datetime.now(),
-            "ents": self.ext_res,
-            # "invoice_number": self.ext_res["all_ents"]["invoice_number"],
-            # "invoice_date": self.ext_res["all_ents"]["invoice_date"],
-            # "vendor_name": self.ext_res["all_ents"]["vendor_name"],
-            # "corporation_id": property_details["corporationID"],
-            # "valid_vendorName": vendor_details["name"],
-            # "client_uuid": client_details["userID"],
-        }
-        # if "id" in vendor_details:
-        #     bill_object["vendorID"] = vendor_details["id"]
-        # result["bill_table_id"] = self.ext_utils.update_billobj(bill_object)
-        # self.ext_res["bill_id"] = result
-        # self.ext_res["timestamp"] = datetime.datetime.now()
-        # result["invoice_table_id"] = self.ext_utils.update_invoiceobj(self.ext_res)
-        result = bill_object
-        return result
+                # parse extraction result
+                inumber = invoice.get("invoice_number")
+                idate = invoice.get("invoice_date")
+                iamount = invoice.get("invoice_amount")
+                vname = invoice.get("vendor_name")
+                vdetails = {
+                    "address": invoice.get("vendor_address"),
+                    "city": invoice.get("vendor_city"),
+                    "zip": invoice.get("vendor_zipcode"),
+                }
+                line_items = invoice.get("line_items")
+
+                bill_object = {
+                    "file_table_id": self.file_table_id,
+                    "email_table_id": self.email_table_id,
+                    "from_Address": fromAddress,
+                    "bill_status": self.bill_status,
+                    "s3_key": self.s3key,
+                    "unique_id": 0,
+                    "client": self.client,
+                    "property": self.property,
+                    "corporation_name": None,  # property_details["corporationName"],
+                    "timestamp": datetime.datetime.now(),
+                    "ents": invoice,
+                    "invoice_number": inumber,
+                    "invoice_amount": iamount,
+                    "invoice_date": idate,
+                    "vendor_name": vname,
+                    "vendor_details": vdetails,
+                    "line_items": line_items,
+                    "corporation_id": None,  # property_details["corporationID"],
+                    "valid_vendorName": None,  # vendor_details["name"],
+                    "client_uuid": None,  # client_details["userID"],
+                }
+                # if "id" in vendor_details:
+                #     bill_object["vendorID"] = vendor_details["id"]
+                result["bill_table_id"] = self.ext_utils.update_billobj(bill_object)
+                invoice["bill_id"] = result["bill_table_id"]
+                invoice["timestamp"] = datetime.datetime.now()
+                result["invoice_table_id"] = self.ext_utils.update_invoiceobj(invoice)
+
+        return len(self.ext_res)
 
     def gbo_func(self, stage):
         start_time = time.time()
